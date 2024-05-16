@@ -12,59 +12,55 @@ import Header from './Header';
 import TextNode from './TextNode';
 import '../index.css';  // Import the CSS file
 
-// Initial empty array for nodes
 const initialNodes = [];
 
-// Define custom node types
 const nodeTypes = {
   textNode: TextNode,
 };
 
 const FlowBuilder = () => {
-  const [nodes, setNodes] = useState(initialNodes); // State to store nodes
-  const [edges, setEdges] = useState([]); // State to store edges
-  const [selectedNode, setSelectedNode] = useState(null); // State to track selected node
-  const [error, setError] = useState(""); // State to manage error messages
+  const [nodes, setNodes] = useState(initialNodes);
+  const [edges, setEdges] = useState([]);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [error, setError] = useState("");
 
-  // Callback to handle node changes
   const onNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [setNodes]
   );
 
-  // Callback to handle edge changes
   const onEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     [setEdges]
   );
 
-  // Callback to handle new edge connections
   const onConnect = useCallback(
-    (params) =>
-      setEdges((eds) =>
-        addEdge(
-          { ...params, markerEnd: { type: 'arrowclosed' } },
-          eds
-        )
-      ),
-    [setEdges]
+    (params) => {
+      const hasOutgoingEdge = edges.some((edge) => edge.source === params.source);
+
+      if (hasOutgoingEdge) {
+        setError("Cannot connect: Node already has an outgoing edge.");
+        setTimeout(() => setError(""), 3000); // Clear error after 3 seconds
+        return;
+      }
+
+      setEdges((eds) => addEdge({ ...params, markerEnd: { type: 'arrowclosed' } }, eds));
+    },
+    [edges]
   );
 
-  // Handle node click event to set the selected node
   const handleNodeClick = (event, node) => {
     setSelectedNode(node);
   };
 
-  // Handle save button click
   const handleSave = () => {
     const nodesWithEmptyTargets = nodes.filter((node) => {
       const connectedEdges = edges.filter((edge) => edge.source === node.id);
       return connectedEdges.length === 0;
     });
 
-    // Check if more than one node has no target handles
     if (nodes.length > 1 && nodesWithEmptyTargets.length > 1) {
-      setError("Cannot save Flow: More than one node has empty target handles.");
+      setError("Cannot save Flow");
       setTimeout(() => setError(""), 3000); // Clear error after 3 seconds
     } else {
       // Save logic here
@@ -76,7 +72,6 @@ const FlowBuilder = () => {
 
   const { project } = useReactFlow();
 
-  // Handle drop event to add new nodes
   const onDrop = (event) => {
     event.preventDefault();
 
@@ -101,13 +96,11 @@ const FlowBuilder = () => {
     setNodes((nds) => nds.concat(newNode));
   };
 
-  // Handle drag over event
   const onDragOver = (event) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   };
 
-  // Handle node data changes
   const handleNodeDataChange = (nodeId, newData) => {
     setNodes((nds) =>
       nds.map((node) =>
